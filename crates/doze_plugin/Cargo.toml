@@ -1,0 +1,15 @@
+[package]
+name = "doze_plugin"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = []
+
+[dependencies]
+doze_common = { workspace = true, features = [ "std" ] }
+
+derive_more = { version = "2.1", features = [ "deref", "deref_mut" ] }
+
+bitflags = "2.11"
+parking_lot = "0.12"

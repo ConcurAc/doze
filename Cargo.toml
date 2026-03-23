@@ -1,0 +1,25 @@
+[package]
+name = "doze"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+members = [
+    "crates/doze_common",
+    "crates/doze_plugin",
+    "crates/doze_clap"
+]
+
+[workspace.dependencies]
+doze_common = { path = "crates/doze_common" }
+doze_plugin = { path = "crates/doze_plugin" }
+
+doze_clap = { path = "crates/doze_clap" }
+
+heapless = "0.9.2"
+derive_more = "2.0.1"
+
+rapidhash = "4.4.1"
+
+[dependencies]
+doze_plugin = { path = "crates/doze_plugin" }
