@@ -65,16 +65,14 @@ impl<P: Plugin> ClapParams<P> {
 
 impl<P: Plugin> ClapParams<P> {
     unsafe extern "C" fn count(clap_plugin: *const clap_plugin) -> u32 {
-        let option: Option<u32> = (move || unsafe {
-            let wrapper = ClapPluginWrapper::from_raw(clap_plugin)?;
-            let params = wrapper.extensions.get::<Params<P>>()?;
-
-            let plugin = Params::<P>::get(wrapper.plugin.as_ref());
-
-            Some((params.count)(plugin) as u32)
-        })();
-
-        option.unwrap_or(0)
+        let Some(wrapper) = (unsafe { ClapPluginWrapper::from_raw(clap_plugin) }) else {
+            return 0;
+        };
+        let Some(params) = wrapper.extensions.get::<Params<P>>() else {
+            return 0;
+        };
+        let plugin = Params::<P>::get(wrapper.plugin.as_ref());
+        (params.count)(plugin) as u32
     }
 
     unsafe extern "C" fn get_info(
@@ -82,29 +80,28 @@ impl<P: Plugin> ClapParams<P> {
         index: u32,
         clap_param_info: *mut clap_param_info,
     ) -> bool {
-        let option: Option<()> = (move || unsafe {
-            let clap_param_info = clap_param_info.as_mut()?;
-
-            let wrapper = ClapPluginWrapper::from_raw(clap_plugin)?;
-            let params = wrapper.extensions.get::<Params<P>>()?;
-
-            let plugin = Params::<P>::get(wrapper.plugin.as_ref());
-
-            (params.get)(plugin, index as usize).map(|p| {
-                let identifier = p.symbol.downgrade();
-
-                let id = identifier.into();
-
-                let info = ClapParamInfo {
-                    id,
-                    param: &p,
-                    cookie: null_mut(), // optimisation not implemented yet
-                };
-                *clap_param_info = info.into();
-            })
-        })();
-
-        option.is_some()
+        let Some(clap_param_info) = (unsafe { clap_param_info.as_mut() }) else {
+            return false;
+        };
+        let Some(wrapper) = (unsafe { ClapPluginWrapper::from_raw(clap_plugin) }) else {
+            return false;
+        };
+        let Some(params) = wrapper.extensions.get::<Params<P>>() else {
+            return false;
+        };
+        let plugin = Params::<P>::get(wrapper.plugin.as_ref());
+        let Some(p) = (params.get)(plugin, index as usize) else {
+            return false;
+        };
+        let identifier = p.symbol.downgrade();
+        let id = identifier.into();
+        let info = ClapParamInfo {
+            id,
+            param: &p,
+            cookie: null_mut(),
+        };
+        *clap_param_info = info.into();
+        true
     }
 
     unsafe extern "C" fn get_value(
@@ -112,20 +109,24 @@ impl<P: Plugin> ClapParams<P> {
         param_id: clap_id,
         value: *mut f64,
     ) -> bool {
-        let option: Option<()> = (move || unsafe {
-            let value = value.as_mut()?;
-
-            let wrapper = ClapPluginWrapper::from_raw(plugin)?;
-            let params = wrapper.extensions.get::<Params<P>>()?;
-
-            let entry = wrapper.entities.get(&param_id.into())?;
-
-            let plugin = Params::<P>::get(wrapper.plugin.as_ref());
-
-            (params.get)(plugin, entry.index).map(|p| *value = p.value.get())
-        })();
-
-        option.is_some()
+        let Some(value) = (unsafe { value.as_mut() }) else {
+            return false;
+        };
+        let Some(wrapper) = (unsafe { ClapPluginWrapper::from_raw(plugin) }) else {
+            return false;
+        };
+        let Some(params) = wrapper.extensions.get::<Params<P>>() else {
+            return false;
+        };
+        let Some(entry) = wrapper.entities.get(&param_id.into()) else {
+            return false;
+        };
+        let plugin = Params::<P>::get(wrapper.plugin.as_ref());
+        let Some(p) = (params.get)(plugin, entry.index) else {
+            return false;
+        };
+        *value = p.value.get();
+        true
     }
 
     unsafe extern "C" fn value_to_text(
@@ -135,23 +136,25 @@ impl<P: Plugin> ClapParams<P> {
         display: *mut i8,
         size: u32,
     ) -> bool {
-        let option: Option<bool> = (move || unsafe {
-            if display.is_null() {
-                return None;
-            }
-
-            let buffer = core::slice::from_raw_parts_mut(display as *mut u8, size as usize);
-            let mut message = NullTermMessage::new(buffer);
-
-            let wrapper = ClapPluginWrapper::from_raw(clap_plugin)?;
-            let params = wrapper.extensions.get::<Params<P>>()?;
-            let entity = wrapper.entities.get(&param_id.into())?;
-            let plugin = Params::<P>::get(wrapper.plugin.as_ref());
-
-            (params.get)(plugin, entity.index).map(|p| (p.value_to_text)(&mut message, value))
-        })();
-
-        option.unwrap_or_default()
+        if display.is_null() {
+            return false;
+        }
+        let buffer = unsafe { core::slice::from_raw_parts_mut(display as *mut u8, size as usize) };
+        let mut message = NullTermMessage::new(buffer);
+        let Some(wrapper) = (unsafe { ClapPluginWrapper::from_raw(clap_plugin) }) else {
+            return false;
+        };
+        let Some(params) = wrapper.extensions.get::<Params<P>>() else {
+            return false;
+        };
+        let Some(entity) = wrapper.entities.get(&param_id.into()) else {
+            return false;
+        };
+        let plugin = Params::<P>::get(wrapper.plugin.as_ref());
+        let Some(p) = (params.get)(plugin, entity.index) else {
+            return false;
+        };
+        (p.value_to_text)(&mut message, value)
     }
 
     unsafe extern "C" fn text_to_value(
@@ -160,25 +163,33 @@ impl<P: Plugin> ClapParams<P> {
         display: *const i8,
         value: *mut f64,
     ) -> bool {
-        let option: Option<()> = (move || unsafe {
-            let value = value.as_mut()?;
-
-            if display.is_null() {
-                return None;
-            }
-            let text = CStr::from_ptr(display).to_str().ok()?;
-
-            let wrapper = ClapPluginWrapper::from_raw(clap_plugin)?;
-            let params = wrapper.extensions.get::<Params<P>>()?;
-            let entity = wrapper.entities.get(&param_id.into())?;
-            let plugin = Params::<P>::get(wrapper.plugin.as_ref());
-
-            (params.get)(plugin, entity.index)
-                .and_then(|p| (p.text_to_value)(text))
-                .map(|v| *value = v)
-        })();
-
-        option.is_some()
+        let Some(value) = (unsafe { value.as_mut() }) else {
+            return false;
+        };
+        if display.is_null() {
+            return false;
+        }
+        let Some(text) = (unsafe { CStr::from_ptr(display).to_str().ok() }) else {
+            return false;
+        };
+        let Some(wrapper) = (unsafe { ClapPluginWrapper::from_raw(clap_plugin) }) else {
+            return false;
+        };
+        let Some(params) = wrapper.extensions.get::<Params<P>>() else {
+            return false;
+        };
+        let Some(entity) = wrapper.entities.get(&param_id.into()) else {
+            return false;
+        };
+        let plugin = Params::<P>::get(wrapper.plugin.as_ref());
+        let Some(p) = (params.get)(plugin, entity.index) else {
+            return false;
+        };
+        let Some(v) = (p.text_to_value)(text) else {
+            return false;
+        };
+        *value = v;
+        true
     }
 
     unsafe extern "C" fn flush(
@@ -186,23 +197,27 @@ impl<P: Plugin> ClapParams<P> {
         input_events: *const clap_input_events,
         output_events: *const clap_output_events,
     ) {
-        let _: Option<()> = (move || unsafe {
-            let wrapper = ClapPluginWrapper::from_raw_mut(clap_plugin)?;
-
-            let input_events = input_events.as_ref()?;
-            let output_events = output_events.as_ref()?;
-
-            let params = wrapper.extensions.get::<Params<P>>()?;
-
-            let mut input_iter = ClapHostEventIter::new(input_events, &wrapper.entities)?;
-
-            let mut sender = ClapEventSender::new(output_events, &mut wrapper.sent_events)?;
-
-            let plugin = Params::<P>::get_mut(wrapper.plugin.as_mut());
-
-            (params.flush)(plugin, &mut input_iter, &mut sender);
-            Some(())
-        })();
+        let Some(wrapper) = (unsafe { ClapPluginWrapper::from_raw_mut(clap_plugin) }) else {
+            return;
+        };
+        let Some(input_events) = (unsafe { input_events.as_ref() }) else {
+            return;
+        };
+        let Some(output_events) = (unsafe { output_events.as_ref() }) else {
+            return;
+        };
+        let Some(params) = wrapper.extensions.get::<Params<P>>() else {
+            return;
+        };
+        let input_iter_option = unsafe { ClapHostEventIter::new(input_events, &wrapper.entities) };
+        let Some(mut input_iter) = input_iter_option else {
+            return;
+        };
+        let Some(mut sender) = ClapEventSender::new(output_events, &mut wrapper.sent_events) else {
+            return;
+        };
+        let plugin = Params::<P>::get_mut(wrapper.plugin.as_mut());
+        (params.flush)(plugin, &mut input_iter, &mut sender);
     }
 }
 
