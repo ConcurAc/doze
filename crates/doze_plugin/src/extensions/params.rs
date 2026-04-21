@@ -110,6 +110,7 @@ pub enum ParamRange {
 
 pub struct ParamValue {
     value: f64,
+    modulation: f64,
     min: f64,
     max: f64,
     default: f64,
@@ -123,6 +124,7 @@ impl From<ParamRange> for ParamValue {
                 let default = default.clamp(min, max);
                 Self {
                     value: default,
+                    modulation: 0.0,
                     min,
                     max,
                     default,
@@ -133,6 +135,7 @@ impl From<ParamRange> for ParamValue {
                 let default = default.clamp(min, max) as f64;
                 Self {
                     value: default,
+                    modulation: 0.0,
                     min: min as f64,
                     max: max as f64,
                     default,
@@ -143,6 +146,7 @@ impl From<ParamRange> for ParamValue {
                 let default = if default { 1.0 } else { 0.0 };
                 Self {
                     value: default,
+                    modulation: 0.0,
                     min: 0.0,
                     max: 1.0,
                     default,
@@ -155,6 +159,7 @@ impl From<ParamRange> for ParamValue {
                 let default = default.clamp(min, max) as f64;
                 Self {
                     value: default,
+                    modulation: 0.0,
                     min: min as f64,
                     max: max as f64,
                     default: default,
@@ -176,19 +181,23 @@ impl ParamValue {
         self.value = value.clamp(self.min, self.max);
     }
 
+    pub fn modulate(&mut self, amount: f64) {
+        self.modulation = amount;
+    }
+
     #[inline]
     pub fn get(&self) -> f64 {
-        self.value
+        (self.value + self.modulation).clamp(self.min, self.max)
     }
 
     #[inline]
     pub fn get_stepped(&self) -> i32 {
-        self.value.round() as i32
+        self.get().round() as i32
     }
 
     #[inline]
     pub fn get_bypass(&self) -> bool {
-        if self.value > 0.5 { true } else { false }
+        if self.get() > 0.5 { true } else { false }
     }
 
     #[inline]
