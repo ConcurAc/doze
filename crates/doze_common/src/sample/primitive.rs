@@ -1,5 +1,5 @@
 macro_rules! primitive {
-    ($($ty:ty)+) => {
+    ($($ty:ty)|+) => {
         pub trait Primitive: $(PrimitiveCast<$ty> +)+ Sized {
             #[inline]
             fn as_primitive<P: PrimitiveCast<Self>>(self) -> P {
@@ -10,7 +10,7 @@ macro_rules! primitive {
     };
 }
 
-primitive!(u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64);
+primitive!(u8 | u16 | u32 | u64 | u128 | usize | i8 | i16 | i32 | i64 | i128 | isize | f32 | f64);
 
 pub trait PrimitiveCast<T> {
     fn from_primitive(value: T) -> Self;
