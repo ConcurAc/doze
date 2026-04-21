@@ -47,31 +47,31 @@ fn note_context_to_clap(context: &NoteContext) -> (i32, i16, i16, i16) {
 pub fn clap_param_value_to_host_event<'r>(
     e: &clap_event_param_value,
     registry: &'r EntityRegistry<ClapId>,
-) -> Option<Event<HostEvent<'r>>> {
-    let id = registry.get(&e.param_id.into())?.identifier.downgrade();
+) -> Option<Event<HostEvent>> {
+    let index = registry.get(&e.param_id.into())?.index;
     let context = note_context_from_clap(e.note_id, e.port_index, e.channel, e.key);
     Some(Event {
         sample_offset: e.header.time,
         flags: ClapEventFlags::from_bits_truncate(e.header.flags).into(),
         event: HostEvent::Param(HostParamEvent::Value {
-            id,
+            index,
             value: e.value,
             context,
         }),
     })
 }
 
-pub fn clap_param_mod_to_host_event<'r>(
+pub fn clap_param_mod_to_host_event(
     e: &clap_event_param_mod,
-    registry: &'r EntityRegistry<ClapId>,
-) -> Option<Event<HostEvent<'r>>> {
-    let id = registry.get(&e.param_id.into())?.identifier.downgrade();
+    registry: &EntityRegistry<ClapId>,
+) -> Option<Event<HostEvent>> {
+    let index = registry.get(&e.param_id.into())?.index;
     let context = note_context_from_clap(e.note_id, e.port_index, e.channel, e.key);
     Some(Event {
         sample_offset: e.header.time,
         flags: ClapEventFlags::from_bits_truncate(e.header.flags).into(),
-        event: HostEvent::Param(HostParamEvent::Mod {
-            id,
+        event: HostEvent::Param(HostParamEvent::Modulate {
+            index,
             amount: e.amount,
             context,
         }),

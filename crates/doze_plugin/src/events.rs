@@ -8,8 +8,8 @@ pub struct Event<E> {
 }
 
 #[derive(Debug, Clone)]
-pub enum HostEvent<'i> {
-    Param(HostParamEvent<'i>),
+pub enum HostEvent {
+    Param(HostParamEvent),
     Midi(HostMidiEvent),
     Transport(TransportEvent),
 }
@@ -21,14 +21,14 @@ pub enum PluginEvent<'i> {
 }
 
 #[derive(Debug, Clone)]
-pub enum HostParamEvent<'i> {
+pub enum HostParamEvent {
     Value {
-        id: WeakIdentifier<'i>,
+        index: usize,
         value: f64,
         context: NoteContext,
     },
-    Mod {
-        id: WeakIdentifier<'i>,
+    Modulate {
+        index: usize,
         amount: f64,
         context: NoteContext,
     },

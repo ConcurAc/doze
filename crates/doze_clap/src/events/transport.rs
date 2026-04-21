@@ -14,7 +14,7 @@ const SECTIME_FACTOR: f64 = CLAP_SECTIME_FACTOR as f64;
 
 // --- CLAP → Host ---
 
-pub fn clap_transport_to_host_event<'r>(e: &clap_event_transport) -> Event<HostEvent<'r>> {
+pub fn clap_transport_to_host_event(e: &clap_event_transport) -> Event<HostEvent> {
     Event {
         sample_offset: e.header.time,
         flags: ClapEventFlags::from_bits_truncate(e.header.flags).into(),

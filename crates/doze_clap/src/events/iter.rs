@@ -64,7 +64,7 @@ impl<'r> ClapHostEventIter<'r> {
 }
 
 impl<'r> Iterator for ClapHostEventIter<'r> {
-    type Item = Event<HostEvent<'r>>;
+    type Item = Event<HostEvent>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

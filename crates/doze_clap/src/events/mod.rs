@@ -105,10 +105,7 @@ impl ClapEventBorrow<'_> {
 }
 
 impl<'r> ClapEventBorrow<'_> {
-    pub fn into_host_event(
-        self,
-        registry: &'r EntityRegistry<ClapId>,
-    ) -> Option<Event<HostEvent<'r>>> {
+    pub fn into_host_event(self, registry: &'r EntityRegistry<ClapId>) -> Option<Event<HostEvent>> {
         match self {
             ClapEventBorrow::ParamValue(e) => param::clap_param_value_to_host_event(e, registry),
             ClapEventBorrow::ParamMod(e) => param::clap_param_mod_to_host_event(e, registry),

@@ -74,7 +74,7 @@ fn clap_expression_id_to_note_expression(id: i32) -> NoteExpression {
 
 // --- CLAP → Host ---
 
-pub fn clap_note_to_host_event<'r>(e: &clap_event_note) -> Option<Event<HostEvent<'r>>> {
+pub fn clap_note_to_host_event<'r>(e: &clap_event_note) -> Option<Event<HostEvent>> {
     let note = midi_note_from_clap_note(e);
     let midi_event = match e.header.type_ as u16 {
         CLAP_EVENT_NOTE_ON => HostMidiEvent::NoteOn {
@@ -95,9 +95,9 @@ pub fn clap_note_to_host_event<'r>(e: &clap_event_note) -> Option<Event<HostEven
     })
 }
 
-pub fn clap_note_expression_to_host_event<'r>(
+pub fn clap_note_expression_to_host_event(
     e: &clap_event_note_expression,
-) -> Option<Event<HostEvent<'r>>> {
+) -> Option<Event<HostEvent>> {
     Some(Event {
         sample_offset: e.header.time,
         flags: ClapEventFlags::from_bits_truncate(e.header.flags).into(),
@@ -109,7 +109,7 @@ pub fn clap_note_expression_to_host_event<'r>(
     })
 }
 
-pub fn clap_midi_to_host_event<'r>(e: &clap_event_midi) -> Option<Event<HostEvent<'r>>> {
+pub fn clap_midi_to_host_event<'r>(e: &clap_event_midi) -> Option<Event<HostEvent>> {
     Some(Event {
         sample_offset: e.header.time,
         flags: ClapEventFlags::from_bits_truncate(e.header.flags).into(),
