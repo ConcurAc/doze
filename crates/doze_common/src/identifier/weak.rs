@@ -2,15 +2,29 @@ use core::{
     borrow::Borrow,
     ffi::CStr,
     fmt::{Display, Error, Formatter, Result},
+    hash::{Hash, Hasher},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WeakIdentifier<'i>(&'i CStr);
+
+impl Hash for WeakIdentifier<'_> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write(self.borrow());
+    }
+}
 
 impl Borrow<[u8]> for WeakIdentifier<'_> {
     #[inline]
     fn borrow(&self) -> &[u8] {
-        self.0.to_bytes_with_nul()
+        self.0.to_bytes()
+    }
+}
+
+impl Borrow<str> for WeakIdentifier<'_> {
+    #[inline]
+    fn borrow(&self) -> &str {
+        self.0.to_str().expect("invalid UTF-8")
     }
 }
 
