@@ -3,7 +3,7 @@ use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use bytemuck::Pod;
 
 pub mod primitive;
-use primitive::Primitive;
+pub use primitive::{Primitive, PrimitiveCast};
 
 pub trait AddSelf: Sized + Add<Self, Output = Self> + AddAssign<Self> {}
 impl<T: Add<Self, Output = Self> + AddAssign<Self>> AddSelf for T {}
