@@ -1,7 +1,7 @@
 #[cfg(feature = "alloc")]
 mod hash;
 #[cfg(feature = "alloc")]
-pub use hash::{HashMap, HashSet};
+pub use hash::{HashMap, HashMapExt, HashSet, HashSetExt};
 
 #[cfg(feature = "alloc")]
 mod type_map;
