@@ -46,7 +46,7 @@ impl PartialEq<str> for StrongIdentifier {
 impl From<WeakIdentifier<'_>> for StrongIdentifier {
     #[inline]
     fn from(identifier: WeakIdentifier<'_>) -> Self {
-        let boxed: Box<[u8]> = Box::from(identifier.borrow());
+        let boxed: Box<[u8]> = Box::from(identifier.as_cstr().to_bytes_with_nul());
         // SAFETY: Copied directly from a valid CStr, null terminator preserved.
         unsafe { StrongIdentifier(Box::from_raw(Box::into_raw(boxed) as *mut CStr)) }
     }
