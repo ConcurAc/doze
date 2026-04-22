@@ -1,13 +1,73 @@
-use doze::prelude::*;
+use std::collections::HashMap;
 
-#[derive(Default)]
+use doze::{common::identifier::StrongIdentifier, prelude::*};
+
+/// Gain plugin state struct.
+///
+/// This holds:
+/// - input/output port definitions (audio routing metadata)
+/// - parameter definitions (gain, etc.)
+///
+/// In this design, everything is stored manually rather than using
+/// a higher-level parameter system.
 pub struct GainPlugin {
-    input_ports: Vec<AudioPortDescriptor>,
-    output_ports: Vec<AudioPortDescriptor>,
+    input_audio_ports: Vec<AudioPortDescriptor>,
+    output_audio_ports: Vec<AudioPortDescriptor>,
     params: Vec<Param>,
+    param_lookup: HashMap<StrongIdentifier, usize>,
 }
 
 impl GainPlugin {
+    fn new() -> Self {
+        let input_audio_ports = vec![AudioPortDescriptor {
+            symbol: "in".into(),
+            name: "input".into(),
+            group: PortGroup::Stereo,
+            flags: AudioPortFlags::default(),
+        }];
+
+        let output_audio_ports = vec![AudioPortDescriptor {
+            symbol: "out".into(),
+            name: "output".into(),
+            group: PortGroup::Stereo,
+            flags: AudioPortFlags::default(),
+        }];
+
+        let params = vec![Param {
+            symbol: "gain".into(),
+            name: "gain".into(),
+            group: ParamGroup::default(),
+            flags: ParamFlags::empty(),
+            value: ParamRange::Continuous {
+                min: -60.0,
+                max: 12.0,
+                default: 0.0,
+            }
+            .into(),
+            value_to_text: |writer, value| {
+                let (value, unit) = ParamUnit::Decibels.scale(value);
+                write!(writer, "{:.2} {}", value, unit).is_ok()
+            },
+            text_to_value: |text| ParamUnit::Decibels.parse(text),
+        }];
+
+        let param_lookup = params
+            .iter()
+            .enumerate()
+            .map(|(i, p)| (p.symbol.clone(), i))
+            .collect();
+
+        Self {
+            input_audio_ports,
+            output_audio_ports,
+            params,
+            param_lookup,
+        }
+    }
+    /// Handles incoming host events (automation, modulation, etc.)
+    ///
+    /// The host sends parameter changes as events rather than directly
+    /// modifying state, so we must decode and apply them manually.
     fn handle_events(&mut self, events: impl Iterator<Item = Event<HostEvent>>) {
         for event in events {
             match event.event {
@@ -17,48 +77,68 @@ impl GainPlugin {
                         value,
                         context: _,
                     } => {
-                        self.params[index].value.set(value);
+                        if let Some(param) = self.params.get_mut(index) {
+                            param.value.set(value);
+                        }
                     }
                     HostParamEvent::Modulate {
                         index,
                         amount,
                         context: _,
                     } => {
-                        self.params[index].value.modulate(amount);
+                        if let Some(param) = self.params.get_mut(index) {
+                            param.value.modulate(amount);
+                        }
                     }
                 },
                 _ => (),
             }
         }
     }
+    /// Custom utility to find params from str symbol identifier
+    fn lookup_param(&self, id: &str) -> Option<&Param> {
+        self.param_lookup.get(id).and_then(|&i| self.params.get(i))
+    }
 }
 
 impl Plugin for GainPlugin {
+    /// Called once when plugin instance is created. Initialise libraries or load assets.
     fn init(&mut self) {}
+    /// Called when plugin state is reset (e.g. DAW reset/transport restart).
     fn reset(&mut self) {}
+    /// Called when audio engine activates plugin.
     fn activate(&mut self, _sample_rate: f64, _min_frames: u32, _max_frames: u32) -> bool {
         true
     }
+    /// Called when plugin is deactivated (track disabled or removed).
     fn deactivate(&mut self) {}
+    /// Called when processing starts (before audio callbacks begin).
     fn start_processing(&mut self) -> bool {
         true
     }
+    /// Called when processing stops. Cleanup transient state if needed.
     fn stop_processing(&mut self) {}
+    /// Main audio processing callback (real-time thread).
     fn process(&mut self, state: Process) -> Status {
+        // Apply any pending automation/modulation events first
         self.handle_events(state.events);
 
         let inputs = state.audio_inputs;
         let outputs = state.audio_outputs;
 
-        assert_eq!(inputs.count(), outputs.count());
+        debug_assert_eq!(inputs.count(), outputs.count());
 
-        if let Some(gain) = self.params.first() {
+        // Fetch gain parameter (first and only param in this plugin)
+        // for multiple plugins IndexMap or phf are recommended for
+        // param retrieval by symbol
+        if let Some(gain) = self.lookup_param("gain") {
             for i in 0..inputs.count() {
+                // Try f32 buffer processing
                 let results = (inputs.get_f32_buffer(i), outputs.get_f32_buffer(i));
                 if let (Ok(input), Ok(mut output)) = results {
                     apply_gain(&input, &mut output, gain.value.get());
                 }
-
+                // Try f64 buffer processing
                 let results = (inputs.get_f64_buffer(i), outputs.get_f64_buffer(i));
                 if let (Ok(input), Ok(mut output)) = results {
                     apply_gain(&input, &mut output, gain.value.get());
@@ -68,99 +148,80 @@ impl Plugin for GainPlugin {
 
         Status::Continue
     }
-
+    /// Called on the GUI/main thread (NOT audio thread).
+    /// Safe for UI updates or logging.
     fn on_main_thread(&mut self) {}
 }
 
+/// Core DSP function: applies gain to an audio buffer.
+///
+/// Generic over sample type (`f32` or `f64`) so it works for both formats.
 fn apply_gain<'p, T: Sample>(
     input: &'p AudioBuffer<'p, T>,
     output: &'p mut AudioBuffer<'p, T>,
-    gain: f64,
+    gain_db: f64,
 ) {
-    assert_eq!(input.count(), output.count());
+    debug_assert_eq!(input.count(), output.count());
+
+    // Convert gain from dB to linear scale:
+    let gain = f64::powf(10.0, gain_db * 0.05).as_primitive();
 
     for (r, w) in input.iter_reader().zip(output.iter_writer()) {
-        io::apply::<T, 128>(r, w, |s| s * f64::powf(10.0, gain * 0.05).as_primitive());
+        io::apply::<T, 128>(r, w, |s| s * gain);
     }
 }
 
+/// Entry point for plugin factory system.
+///
+/// This builds the plugin instance and registers it with the host.
 pub struct GainEntry;
 
 impl<A: PluginApi> Entry<A> for GainEntry {
     fn init(_path: Option<&Path>) -> Option<PluginFactoryBuilder<A>> {
-        let builder = PluginFactoryBuilder::new().add_plugin(
-            PluginBuilder::<A, GainPlugin>::default()
-                .set_creator(|| {
-                    let plugin = GainPlugin {
-                        input_ports: vec![AudioPortDescriptor {
-                            symbol: "i".into(),
-                            name: "input".into(),
-                            group: PortGroup::Stereo,
-                            flags: AudioPortFlags::default(),
-                        }],
-                        output_ports: vec![AudioPortDescriptor {
-                            symbol: "o".into(),
-                            name: "output".into(),
-                            group: PortGroup::Stereo,
-                            flags: AudioPortFlags::default(),
-                        }],
-                        params: vec![Param {
-                            symbol: "g".into(),
-                            name: "gain".into(),
-                            group: ParamGroup {
-                                symbol: "g".into(),
-                                name: "gain".into(),
-                                prefix: "".into(),
-                                port_group: PortGroup::Stereo,
-                            },
-                            flags: ParamFlags::empty(),
-                            value: ParamRange::Continuous {
-                                min: -60.0,
-                                max: 12.0,
-                                default: 0.0,
-                            }
-                            .into(),
-                            value_to_text: |writer, value| {
-                                let (value, unit) = ParamUnit::Decibels.scale(value);
-                                write!(writer, "{:.2} {}", value, unit).is_ok()
-                            },
-                            text_to_value: |text| ParamUnit::Decibels.parse(text),
-                        }],
-                    };
-                    Box::new(plugin)
-                })
-                .set_descriptor(PluginDescriptor {
-                    id: "com.example.gain".into(),
-                    name: "Gain".into(),
-                    vendor: "Example".into(),
-                    version: "0.1.0".into(),
-                    url: None,
-                    manual_url: None,
-                    support_url: None,
-                    description: None,
-                    features: vec![PluginFeature::AudioEffect, PluginFeature::Stereo].into(),
-                })
-                .add_extension(AudioPorts::<GainPlugin> {
-                    count: |plugin, direction| match direction {
-                        PortDirection::Input => plugin.input_ports.len(),
-                        PortDirection::Output => plugin.output_ports.len(),
-                    },
-                    get: |plugin, direction, index| match direction {
-                        PortDirection::Input => plugin.input_ports.get(index),
-                        PortDirection::Output => plugin.output_ports.get(index),
-                    },
-                    in_place_pairs: None,
-                })
-                .add_extension(Params::<GainPlugin> {
-                    count: |plugin| plugin.params.len(),
-                    get: |plugin, index| plugin.params.get(index),
-                    flush: |plugin, events, _output| plugin.handle_events(events),
-                })
-                .into(),
-        );
-        Some(builder)
+        let gain_descriptor = PluginDescriptor {
+            id: "com.example.gain".into(),
+            name: "Gain".into(),
+            vendor: "Example".into(),
+            version: "0.1.0".into(),
+            url: None,
+            manual_url: None,
+            support_url: None,
+            description: None,
+            features: vec![PluginFeature::AudioEffect, PluginFeature::Stereo].into(),
+        };
+
+        let gain_audio_ports = AudioPorts::<GainPlugin> {
+            count: |plugin, direction| match direction {
+                PortDirection::Input => plugin.input_audio_ports.len(),
+                PortDirection::Output => plugin.output_audio_ports.len(),
+            },
+            get: |plugin, direction, index| match direction {
+                PortDirection::Input => plugin.input_audio_ports.get(index),
+                PortDirection::Output => plugin.output_audio_ports.get(index),
+            },
+            in_place_pairs: None,
+        };
+
+        let gain_params = Params::<GainPlugin> {
+            count: |plugin| plugin.params.len(),
+            // Once the plugin reports a param to the host
+            // it is expected to perist with the same index for the entire runtime.
+            // Ordering does not affect host plugin identification. Params are remembered by
+            // the host from their [`symbol`]
+            get: |plugin, index| plugin.params.get(index),
+            flush: |plugin, events, _output| plugin.handle_events(events),
+        };
+
+        let gain_builder = PluginBuilder::<A, GainPlugin>::default()
+            .set_creator(|| Box::new(GainPlugin::new()))
+            .set_descriptor(gain_descriptor)
+            .add_extension(gain_audio_ports)
+            .add_extension(gain_params);
+
+        Some(PluginFactoryBuilder::new().add_plugin(gain_builder.into()))
     }
 
+    /// Called when plugin library is unloaded.
     fn deinit() {}
 }
 
