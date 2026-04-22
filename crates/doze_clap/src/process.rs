@@ -22,7 +22,7 @@ pub struct ClapProcess<'h, 'p> {
     audio_inputs: ClapAudioInput<'h>,
     audio_outputs: ClapAudioOutput<'h>,
 
-    events: &'h mut dyn Iterator<Item = Event<HostEvent<'h>>>,
+    events: &'h mut dyn Iterator<Item = Event<HostEvent>>,
     sender: ClapEventSender<'h, 'p>,
 }
 
@@ -42,7 +42,7 @@ impl<'h, 'p> Into<Process<'h, 'p>> for &'p mut ClapProcess<'h, 'p> {
 impl<'h, 'p> ClapProcess<'h, 'p> {
     pub fn new(
         clap_process: &'h clap_process,
-        events: &'h mut dyn Iterator<Item = Event<HostEvent<'h>>>,
+        events: &'h mut dyn Iterator<Item = Event<HostEvent>>,
         sender: ClapEventSender<'h, 'p>,
     ) -> Option<Self> {
         let frames = clap_process.frames_count as usize;
@@ -65,6 +65,9 @@ pub struct ClapAudioBus<'h, D> {
 }
 
 impl<'h, D> AudioBus<'h> for ClapAudioBus<'_, D> {
+    fn count(&self) -> usize {
+        self.buffers.len()
+    }
     fn get_f32_buffer(&self, index: usize) -> Result<AudioBuffer<'h, f32>, AudioBufferError> {
         let Some(buffer) = self.buffers.get(index) else {
             return Err(AudioBufferError::NotFound);
