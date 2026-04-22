@@ -14,7 +14,7 @@ pub struct StrongIdentifier(Box<CStr>);
 
 impl Hash for StrongIdentifier {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        state.write(self.borrow());
+        self.0.to_bytes().hash(state);
     }
 }
 
@@ -22,13 +22,6 @@ impl Borrow<[u8]> for StrongIdentifier {
     #[inline]
     fn borrow(&self) -> &[u8] {
         self.0.to_bytes()
-    }
-}
-
-impl Borrow<str> for StrongIdentifier {
-    #[inline]
-    fn borrow(&self) -> &str {
-        self.0.to_str().expect("invalid UTF-8")
     }
 }
 
