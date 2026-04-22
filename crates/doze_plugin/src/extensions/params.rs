@@ -2,7 +2,7 @@ use core::fmt::Write;
 
 use doze_common::identifier::{StrongIdentifier, WeakIdentifier};
 
-use super::{Extension, PluginAccess, RegistrySource, audio_ports::PortGroup};
+use super::{Extension, PluginAccess, RegistrySource};
 
 use crate::{
     events::{Event, EventSender, HostEvent, PluginEvent},
@@ -56,11 +56,11 @@ pub struct Param {
     pub text_to_value: fn(&str) -> Option<f64>,
 }
 
+#[derive(Default)]
 pub struct ParamGroup {
     pub symbol: &'static str,
     pub name: &'static str,
     pub prefix: &'static str,
-    pub port_group: PortGroup,
 }
 
 bitflags::bitflags! {
