@@ -16,3 +16,10 @@ pub mod identifier;
 pub mod collections;
 
 pub use midi_consts as midi;
+
+pub mod prelude {
+    pub use crate::{
+        io::{self, Reader, ReaderExt, Writer, WriterExt},
+        sample::{Primitive, PrimitiveCast, Sample},
+    };
+}
