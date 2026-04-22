@@ -21,11 +21,11 @@ use doze_plugin::{
 
 use crate::ClapId;
 
-pub(super) const CLAP_NOTE_WILDCARD: i32 = -1;
+const CLAP_NOTE_WILDCARD: i32 = -1;
 
 // --- Shared header constructor ---
 
-pub(super) fn make_header<T>(type_: u16, time: u32, flags: ClapEventFlags) -> clap_event_header {
+fn make_header<T>(type_: u16, time: u32, flags: ClapEventFlags) -> clap_event_header {
     clap_event_header {
         size: size_of::<T>() as u32,
         time,
@@ -73,6 +73,11 @@ impl ClapEvent {
 
 impl ClapEventBorrow<'_> {
     pub unsafe fn from_header(header: &clap_event_header) -> Option<Self> {
+        // custom event space unsupported
+        if header.space_id != CLAP_CORE_EVENT_SPACE_ID {
+            return None;
+        }
+
         let ptr = header as *const _;
         unsafe {
             match header.type_ as u16 {
