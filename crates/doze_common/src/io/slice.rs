@@ -42,7 +42,7 @@ impl<T: Sample> Writer<T> for SliceWriter<'_, T> {
     fn write(&mut self, input: &[T]) -> usize {
         let pos = self.position;
         let remaining = self.data.len() - pos;
-        let len = self.data.len().min(remaining);
+        let len = input.len().min(remaining);
 
         self.data[pos..pos + len].copy_from_slice(&input[..len]);
         self.position += len;
