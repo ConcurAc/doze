@@ -1,22 +1,24 @@
 use std::{
-    ffi::{CStr, c_void},
+    ffi::{CStr, c_char, c_void},
     marker::PhantomData,
     ptr::null_mut,
 };
 
 use clap_sys::{
     events::{clap_input_events, clap_output_events},
-    ext::params::{
-        CLAP_EXT_PARAMS, CLAP_PARAM_IS_AUTOMATABLE, CLAP_PARAM_IS_AUTOMATABLE_PER_CHANNEL,
-        CLAP_PARAM_IS_AUTOMATABLE_PER_KEY, CLAP_PARAM_IS_AUTOMATABLE_PER_NOTE_ID,
-        CLAP_PARAM_IS_AUTOMATABLE_PER_PORT, CLAP_PARAM_IS_BYPASS, CLAP_PARAM_IS_ENUM,
-        CLAP_PARAM_IS_HIDDEN, CLAP_PARAM_IS_MODULATABLE, CLAP_PARAM_IS_MODULATABLE_PER_CHANNEL,
-        CLAP_PARAM_IS_MODULATABLE_PER_KEY, CLAP_PARAM_IS_MODULATABLE_PER_NOTE_ID,
-        CLAP_PARAM_IS_MODULATABLE_PER_PORT, CLAP_PARAM_IS_PERIODIC, CLAP_PARAM_IS_READONLY,
-        CLAP_PARAM_IS_STEPPED, CLAP_PARAM_REQUIRES_PROCESS, clap_param_info, clap_plugin_params,
-    },
+    ext::params::{CLAP_EXT_PARAMS, clap_param_info, clap_plugin_params},
     id::clap_id,
     plugin::clap_plugin,
+};
+
+use clap_sys::ext::params::{
+    CLAP_PARAM_IS_AUTOMATABLE, CLAP_PARAM_IS_AUTOMATABLE_PER_CHANNEL,
+    CLAP_PARAM_IS_AUTOMATABLE_PER_KEY, CLAP_PARAM_IS_AUTOMATABLE_PER_NOTE_ID,
+    CLAP_PARAM_IS_AUTOMATABLE_PER_PORT, CLAP_PARAM_IS_BYPASS, CLAP_PARAM_IS_ENUM,
+    CLAP_PARAM_IS_HIDDEN, CLAP_PARAM_IS_MODULATABLE, CLAP_PARAM_IS_MODULATABLE_PER_CHANNEL,
+    CLAP_PARAM_IS_MODULATABLE_PER_KEY, CLAP_PARAM_IS_MODULATABLE_PER_NOTE_ID,
+    CLAP_PARAM_IS_MODULATABLE_PER_PORT, CLAP_PARAM_IS_PERIODIC, CLAP_PARAM_IS_READONLY,
+    CLAP_PARAM_IS_STEPPED, CLAP_PARAM_REQUIRES_PROCESS,
 };
 
 use doze_common::{fmt::NullTermMessage, identifier::WeakIdentifier};
@@ -223,21 +225,22 @@ impl<P: Plugin> ClapParams<P> {
 
 impl<'d> Into<clap_param_info> for ClapParamInfo<'d> {
     fn into(self) -> clap_param_info {
-        let mut name = [0i8; 256];
-        for (i, b) in self.param.name.bytes().take(255).enumerate() {
-            name[i] = b as i8;
+        let mut name = ['\0' as c_char; 256];
+        for (i, b) in self.param.name.bytes().take(name.len() - 1).enumerate() {
+            name[i] = b as c_char;
         }
-        let mut module = [0i8; 1024];
+
+        let mut module = ['\0' as c_char; 1024];
         let group = &self.param.group;
-        for (i, b) in group
+
+        let mut module_iter = group
             .prefix
             .bytes()
-            .chain([b'/'].into_iter())
-            .chain(group.name.bytes())
-            .take(1023)
-            .enumerate()
-        {
-            module[i] = b as i8;
+            .chain(if group.prefix.is_empty() { "" } else { "/" }.bytes())
+            .chain(group.name.bytes());
+
+        for (i, b) in module_iter.by_ref().take(module.len() - 1).enumerate() {
+            module[i] = b as c_char;
         }
 
         clap_param_info {
