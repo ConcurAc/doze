@@ -19,7 +19,7 @@ pub mod prelude {
         extensions::{audio_ports::*, params::*},
         factory::plugin::{PluginBuilder, PluginFactoryBuilder},
         plugin::{Plugin, PluginDescriptor, PluginFeature},
-        process::{Process, Status},
+        process::{AudioBuffer, Process, Status},
     };
 
     pub use std::path::Path;
