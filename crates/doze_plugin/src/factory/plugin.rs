@@ -47,14 +47,14 @@ impl<A: PluginApi> PluginFactoryBuilder<A> {
 pub struct PluginDefinition<A: PluginApi> {
     pub creator: fn() -> Box<dyn Plugin>,
     pub descriptor: PluginDescriptor,
+    pub context: PluginContext,
     pub extensions: Vec<A::Extension>,
-    pub event_capacity: usize,
 }
 
 pub struct PluginBuilder<A: PluginApi, P: Plugin> {
     creator: Option<fn() -> Box<dyn Plugin>>,
     descriptor: Option<PluginDescriptor>,
-    event_capacity: Option<usize>,
+    context: Option<PluginContext>,
     extensions: Vec<A::Extension>,
 
     _api: PhantomData<A>,
@@ -66,7 +66,7 @@ impl<A: PluginApi, P: Plugin> Default for PluginBuilder<A, P> {
         Self {
             creator: None,
             descriptor: None,
-            event_capacity: None,
+            context: None,
             extensions: Vec::new(),
             _api: PhantomData,
             _plugin: PhantomData,
@@ -83,8 +83,8 @@ impl<A: PluginApi, P: Plugin> PluginBuilder<A, P> {
         self.descriptor = Some(descriptor);
         self
     }
-    pub fn set_event_capacity(mut self, capacity: usize) -> Self {
-        self.event_capacity = Some(capacity);
+    pub fn set_context(mut self, context: PluginContext) -> Self {
+        self.context = Some(context);
         self
     }
     pub fn add_extension<E: Extension>(mut self, extension: E) -> Self {
@@ -94,8 +94,6 @@ impl<A: PluginApi, P: Plugin> PluginBuilder<A, P> {
     }
 }
 
-const DEFAULT_EVENT_CAPACITY: usize = 32;
-
 impl<A: PluginApi, P: Plugin> Into<PluginDefinition<A>> for PluginBuilder<A, P> {
     fn into(self) -> PluginDefinition<A> {
         PluginDefinition {
@@ -104,8 +102,19 @@ impl<A: PluginApi, P: Plugin> Into<PluginDefinition<A>> for PluginBuilder<A, P> 
                 .descriptor
                 .clone()
                 .expect("plugin descriptor not provided"),
-            event_capacity: self.event_capacity.unwrap_or(DEFAULT_EVENT_CAPACITY),
+            context: self.context.unwrap_or_default(),
             extensions: self.extensions,
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct PluginContext {
+    pub event_capacity: usize,
+}
+
+impl Default for PluginContext {
+    fn default() -> Self {
+        Self { event_capacity: 32 }
     }
 }

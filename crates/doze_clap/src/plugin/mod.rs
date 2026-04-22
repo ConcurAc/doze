@@ -66,7 +66,7 @@ impl ClapPluginWrapper {
             extensions,
             entities,
 
-            sent_events: History::with_capacity(definition.event_capacity),
+            sent_events: History::with_capacity(definition.context.event_capacity),
             transport: None,
 
             vtables,
