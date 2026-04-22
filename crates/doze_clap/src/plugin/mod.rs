@@ -25,6 +25,7 @@ use crate::{
 };
 
 pub mod descriptor;
+pub mod feature;
 
 pub struct ClapPluginWrapper {
     pub plugin: Box<dyn Plugin>,

@@ -1,5 +1,3 @@
-pub mod descriptor;
-
 use std::{
     any::{Any, TypeId},
     hash::Hash,
@@ -13,6 +11,12 @@ use crate::{
     extensions::{Bridge, Extension},
     process::{Process, Status},
 };
+
+pub mod descriptor;
+pub use descriptor::PluginDescriptor;
+
+pub mod feature;
+pub use feature::PluginFeature;
 
 pub trait Plugin: Any + Send + Sync + 'static {
     fn init(&mut self);

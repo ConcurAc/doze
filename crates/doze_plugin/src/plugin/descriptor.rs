@@ -1,6 +1,6 @@
 use doze_common::identifier::StrongIdentifier;
 
-use crate::features::PluginFeature;
+use super::feature::PluginFeature;
 
 #[derive(Clone)]
 pub struct PluginDescriptor {

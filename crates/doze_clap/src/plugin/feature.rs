@@ -1,4 +1,4 @@
-use doze_plugin::features::PluginFeature;
+use doze_plugin::plugin::feature::PluginFeature;
 
 use clap_sys::plugin_features::{
     CLAP_PLUGIN_FEATURE_AMBISONIC, CLAP_PLUGIN_FEATURE_ANALYZER, CLAP_PLUGIN_FEATURE_AUDIO_EFFECT,

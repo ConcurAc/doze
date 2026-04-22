@@ -1,11 +1,11 @@
-use doze_common::identifier::{StrongIdentifier, WeakIdentifier};
-use doze_plugin::prelude::PluginDescriptor;
+use std::{ffi::c_char, ptr::null};
 
 use clap_sys::{plugin::clap_plugin_descriptor, version::CLAP_VERSION};
 
-use std::{ffi::c_char, ptr::null};
+use doze_common::identifier::{StrongIdentifier, WeakIdentifier};
+use doze_plugin::plugin::descriptor::PluginDescriptor;
 
-use crate::features::feature_as_clap;
+use super::feature::feature_as_clap;
 
 struct InnerClapPluginDescriptor {
     id: StrongIdentifier,
@@ -116,50 +116,3 @@ impl<'d> From<PluginDescriptor> for ClapPluginDescriptor {
         }
     }
 }
-
-#[derive(Debug)]
-pub struct NullFieldError;
-
-impl std::fmt::Display for NullFieldError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "required field was null")
-    }
-}
-
-impl std::error::Error for NullFieldError {}
-
-// impl TryFrom<&clap_plugin_descriptor> for PluginDescriptor {
-//     type Error = NullFieldError;
-
-//     fn try_from(descriptor: &clap_plugin_descriptor) -> Result<Self, Self::Error> {
-//         let try_string = |ptr: *const c_char| match ptr.is_null() {
-//             false => Ok(unsafe { CStr::from_ptr(ptr) }.to_string_lossy().to_string()),
-//             true => Err(NullFieldError),
-//         };
-
-//         Ok(Self {
-//             id: Some(try_string(descriptor.id)?),
-//             name: try_string(descriptor.name)?,
-//             vendor: try_string(descriptor.vendor)?,
-//             version: try_string(descriptor.version)?,
-//             url: try_string(descriptor.url).ok(),
-//             manual_url: try_string(descriptor.manual_url).ok(),
-//             support_url: try_string(descriptor.support_url).ok(),
-//             description: try_string(descriptor.description).ok(),
-//             features: unsafe {
-//                 let mut features = Vec::new();
-//                 if descriptor.features.is_null() {
-//                     return Err(NullFieldError);
-//                 }
-//                 let mut ptr = descriptor.features;
-//                 while !(*ptr).is_null() {
-//                     if let Some(feature) = PluginFeature::from_clap(CStr::from_ptr(*ptr)) {
-//                         features.push(feature);
-//                     }
-//                     ptr = ptr.add(1);
-//                 }
-//                 features
-//             },
-//         })
-//     }
-// }

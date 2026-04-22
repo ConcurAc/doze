@@ -1,14 +1,13 @@
 #[forbid(unsafe_code)]
-pub mod events;
-pub mod extensions;
-pub mod factory;
-pub mod features;
-pub mod plugin;
-pub mod process;
-
 use std::path::Path;
 
 use crate::{extensions::Bridge, factory::plugin::PluginFactoryBuilder};
+
+pub mod events;
+pub mod extensions;
+pub mod factory;
+pub mod plugin;
+pub mod process;
 
 pub mod prelude {
     pub use crate::{
@@ -19,8 +18,7 @@ pub mod prelude {
         },
         extensions::{audio_ports::*, params::*},
         factory::plugin::{PluginBuilder, PluginFactoryBuilder},
-        features::PluginFeature,
-        plugin::{Plugin, descriptor::PluginDescriptor},
+        plugin::{Plugin, PluginDescriptor, PluginFeature},
         process::{Process, Status},
     };
 

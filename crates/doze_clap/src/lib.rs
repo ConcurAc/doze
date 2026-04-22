@@ -5,14 +5,13 @@ use doze_plugin::PluginApi;
 
 use crate::extensions::ClapBridge;
 
-pub use doze_plugin;
-
 pub use clap_sys;
+
+pub use doze_plugin;
 
 pub mod events;
 pub mod extensions;
 pub mod factory;
-pub mod features;
 pub mod plugin;
 pub mod process;
 
