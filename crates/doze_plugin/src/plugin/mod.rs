@@ -19,14 +19,14 @@ pub mod feature;
 pub use feature::PluginFeature;
 
 pub trait Plugin: Any + Send + Sync + 'static {
-    fn init(&mut self);
-    fn reset(&mut self);
+    fn init(&mut self) {}
+    fn reset(&mut self) {}
     fn activate(&mut self, sample_rate: f64, min_frames_count: u32, max_frames_count: u32) -> bool;
-    fn deactivate(&mut self);
+    fn deactivate(&mut self) {}
     fn start_processing(&mut self) -> bool;
-    fn stop_processing(&mut self);
+    fn stop_processing(&mut self) {}
     fn process(&mut self, state: Process) -> Status;
-    fn on_main_thread(&mut self);
+    fn on_main_thread(&mut self) {}
 }
 
 pub struct ExtensionRegistry<A: PluginApi> {
