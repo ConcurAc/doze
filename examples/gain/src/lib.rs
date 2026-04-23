@@ -108,9 +108,8 @@ impl Plugin for GainPlugin {
 
         debug_assert_eq!(inputs.count(), outputs.count());
 
-        // Fetch gain parameter (first and only param in this plugin)
-        // for multiple plugins IndexMap or phf are recommended for
-        // param retrieval by symbol
+        // For retrieving params, IndexMap is a good storage option
+        // allowing for param retrieval by symbol
         if let Some(gain) = self.params.get("gain".as_bytes()) {
             for i in 0..inputs.count() {
                 // Try f32 buffer processing
@@ -184,7 +183,7 @@ impl<A: PluginApi> Entry<A> for GainEntry {
             // Once the plugin reports a param to the host
             // it is expected to perist with the same index for the entire runtime.
             // Ordering does not affect host plugin identification. Params are remembered by
-            // the host from their [`symbol`]
+            // the host from their `symbol`
             get: |plugin, index| plugin.params.get_index(index).map(|(_, p)| p),
             flush: |plugin, events, _output| plugin.handle_events(events),
         };
