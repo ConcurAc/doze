@@ -1,6 +1,7 @@
-use std::collections::HashMap;
-
-use doze::{common::identifier::StrongIdentifier, prelude::*};
+use doze::{
+    common::{collections::IndexMap, identifier::StrongIdentifier},
+    prelude::*,
+};
 
 /// Gain plugin state struct.
 ///
@@ -13,8 +14,7 @@ use doze::{common::identifier::StrongIdentifier, prelude::*};
 pub struct GainPlugin {
     input_audio_ports: Vec<AudioPortDescriptor>,
     output_audio_ports: Vec<AudioPortDescriptor>,
-    params: Vec<Param>,
-    param_lookup: HashMap<StrongIdentifier, usize>,
+    params: IndexMap<StrongIdentifier, Param>,
 }
 
 impl GainPlugin {
@@ -51,17 +51,10 @@ impl GainPlugin {
             text_to_value: |text| ParamUnit::Decibels.parse(text),
         }];
 
-        let param_lookup = params
-            .iter()
-            .enumerate()
-            .map(|(i, p)| (p.symbol.clone(), i))
-            .collect();
-
         Self {
             input_audio_ports,
             output_audio_ports,
-            params,
-            param_lookup,
+            params: params.into_iter().map(|p| (p.symbol.clone(), p)).collect(),
         }
     }
     /// Handles incoming host events (automation, modulation, etc.)
@@ -77,7 +70,7 @@ impl GainPlugin {
                         value,
                         context: _,
                     } => {
-                        if let Some(param) = self.params.get_mut(index) {
+                        if let Some((_, param)) = self.params.get_index_mut(index) {
                             param.value.set(value);
                         }
                     }
@@ -86,7 +79,7 @@ impl GainPlugin {
                         amount,
                         context: _,
                     } => {
-                        if let Some(param) = self.params.get_mut(index) {
+                        if let Some((_, param)) = self.params.get_index_mut(index) {
                             param.value.modulate(amount);
                         }
                     }
@@ -95,29 +88,16 @@ impl GainPlugin {
             }
         }
     }
-    /// Custom utility to find params from str symbol identifier
-    fn lookup_param(&self, id: &str) -> Option<&Param> {
-        self.param_lookup.get(id).and_then(|&i| self.params.get(i))
-    }
 }
 
 impl Plugin for GainPlugin {
-    /// Called once when plugin instance is created. Initialise libraries or load assets.
-    fn init(&mut self) {}
-    /// Called when plugin state is reset (e.g. DAW reset/transport restart).
-    fn reset(&mut self) {}
-    /// Called when audio engine activates plugin.
     fn activate(&mut self, _sample_rate: f64, _min_frames: u32, _max_frames: u32) -> bool {
         true
     }
-    /// Called when plugin is deactivated (track disabled or removed).
-    fn deactivate(&mut self) {}
     /// Called when processing starts (before audio callbacks begin).
     fn start_processing(&mut self) -> bool {
         true
     }
-    /// Called when processing stops. Cleanup transient state if needed.
-    fn stop_processing(&mut self) {}
     /// Main audio processing callback (real-time thread).
     fn process(&mut self, state: Process) -> Status {
         // Apply any pending automation/modulation events first
@@ -131,7 +111,7 @@ impl Plugin for GainPlugin {
         // Fetch gain parameter (first and only param in this plugin)
         // for multiple plugins IndexMap or phf are recommended for
         // param retrieval by symbol
-        if let Some(gain) = self.lookup_param("gain") {
+        if let Some(gain) = self.params.get("gain".as_bytes()) {
             for i in 0..inputs.count() {
                 // Try f32 buffer processing
                 let results = (inputs.get_f32_buffer(i), outputs.get_f32_buffer(i));
@@ -148,9 +128,6 @@ impl Plugin for GainPlugin {
 
         Status::Continue
     }
-    /// Called on the GUI/main thread (NOT audio thread).
-    /// Safe for UI updates or logging.
-    fn on_main_thread(&mut self) {}
 }
 
 /// Core DSP function: applies gain to an audio buffer.
@@ -208,7 +185,7 @@ impl<A: PluginApi> Entry<A> for GainEntry {
             // it is expected to perist with the same index for the entire runtime.
             // Ordering does not affect host plugin identification. Params are remembered by
             // the host from their [`symbol`]
-            get: |plugin, index| plugin.params.get(index),
+            get: |plugin, index| plugin.params.get_index(index).map(|(_, p)| p),
             flush: |plugin, events, _output| plugin.handle_events(events),
         };
 
