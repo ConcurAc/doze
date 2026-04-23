@@ -9,10 +9,56 @@ use crate::{
     plugin::Plugin,
 };
 
+/// Parameter management extension for plugin automation and modulation.
+///
+/// Allows plugins to declare parameters that can be automated by the host,
+/// modulated by MIDI/MPE controllers, and saved/restored with plugin state.
+///
+/// # Generic Parameters
+/// - `P`: The plugin type implementing this extension
+///
+/// # Fields
+/// - `count`: Function returning total number of parameters
+/// - `get`: Function returning a parameter descriptor by index
+/// - `flush`: Function processing incoming parameter events
+///
+/// # Important
+/// Parameter indices must remain stable throughout the plugin session.
+/// The host remembers parameters by their `symbol`, not index.
+/// If indices change, host state becomes invalid.
 #[derive(Clone)]
 pub struct Params<P: Plugin> {
+    /// Query the total number of parameters.
+    ///
+    /// # Returns
+    /// Number of parameters (0 or more) exposed by this plugin.
     pub count: fn(&P) -> usize,
+
+    /// Get the descriptor for a parameter by index.
+    ///
+    /// # Arguments
+    /// - `plugin`: Reference to the plugin
+    /// - `index`: Parameter index (0..count())
+    ///
+    /// # Returns
+    /// - `Some(&param)`: Parameter descriptor at this index
+    /// - `None`: Index out of range
+    ///
+    /// # Important
+    /// Parameter index must remain stable for the entire plugin session.
     pub get: for<'p> fn(&'p P, usize) -> Option<&'p Param>,
+
+    /// Process incoming parameter events from the host.
+    ///
+    /// Called when the host has parameter changes (automation, modulation, etc.)
+    /// for the plugin to apply. This is the main entry point for parameter updates.
+    ///
+    /// # Arguments
+    /// - `plugin`: Mutable reference to plugin for state updates
+    /// - `events`: Iterator over incoming host events (parameter changes, etc.)
+    /// - `sender`: Event sender for plugin → host communication
+    ///
+    /// This is called on the main thread and can block
     pub flush: fn(
         &mut P,
         &mut dyn Iterator<Item = Event<HostEvent>>,
@@ -42,78 +88,256 @@ impl<P: Plugin> RegistrySource for Params<P> {
     }
 }
 
+/// Complete parameter definition and metadata.
+///
+/// Describes a single automatable parameter including its type, range, name,
+/// display format, and current value. Used by the host to present parameter controls
+/// and automation UI.
+///
+/// # Fields
+/// - `symbol`: Stable identifier
+/// - `name`: Display name for UI
+/// - `group`: Parameter grouping for organization
+/// - `flags`: Capability flags (automatable, modulatable, etc.)
+/// - `value`: Current value and range information
+/// - `value_to_text`: Convert normalized value to display string
+/// - `text_to_value`: Parse display string back to value
 pub struct Param {
+    /// Stable unique identifier for this parameter.
+    ///
+    /// Used by the host to remember the parameter across sessions.
+    /// Should be URL-safe and descriptive.
+    ///
+    /// **Important**: This must not change between plugin versions, as the host
+    /// uses it to map automation data.
     pub symbol: StrongIdentifier,
 
+    /// Human-readable display name for the parameter.
+    ///
+    /// Shown in the host's automation/parameter UI.
     pub name: String,
+
+    /// Parameter grouping for UI organization.
+    ///
+    /// Allows organizing related parameters into sections.
     pub group: ParamGroup,
 
+    /// Capability flags for this parameter.
+    ///
+    /// Indicates which automation/modulation modes are supported, whether the parameter
+    /// is hidden, read-only, etc.
     pub flags: ParamFlags,
 
+    /// Current value and range information.
+    ///
+    /// Stores the parameter's range (min/max/default) and current value + modulation state.
     pub value: ParamValue,
 
+    /// Function to convert normalized value to display text.
+    ///
+    /// Called by the host to get the text representation of a parameter value.
+    /// Examples: 0.5 → "0.0 dB", 0.0 → "-∞ dB"
+    ///
+    /// # Arguments
+    /// - `writer`: Write the display string here
+    /// - `normalized_value`: Normalized value (0..1 or special range)
+    ///
+    /// # Returns
+    /// `true` if formatting succeeded, `false` on error.
     pub value_to_text: fn(&mut dyn Write, f64) -> bool,
+
+    /// Function to parse display text back to normalized value.
+    ///
+    /// Called by the host when the user edits a parameter value as text.
+    /// Examples: "6 dB" → 0.6, "1 kHz" → 0.1
+    ///
+    /// # Arguments
+    /// - `text`: Text input from user
+    ///
+    /// # Returns
+    /// - `Some(value)`: Successfully parsed to normalized value
+    /// - `None`: Parsing failed
     pub text_to_value: fn(&str) -> Option<f64>,
 }
 
-#[derive(Default)]
+/// Parameter grouping for UI organization and categorization.
+///
+/// Parameters can be organized into groups/sections in the UI to improve
+/// usability (e.g., grouping all filter parameters together).
+///
+/// # Fields
+/// - `symbol`: Identifier for this group (e.g., "filter")
+/// - `name`: Display name (e.g., "Filter")
+/// - `prefix`: Optional prefix for parameter names within this group
+#[derive(Default, Clone, Copy)]
 pub struct ParamGroup {
+    /// Stable identifier for this parameter group.
+    ///
+    /// Used to group related parameters in the UI.
     pub symbol: &'static str,
+
+    /// Display name for this parameter group.
+    ///
+    /// Shown as a section header in the parameter UI.
     pub name: &'static str,
+
+    /// Optional prefix for parameter names within this group.
+    ///
+    /// If set, the host may prepend this to parameter display names.
     pub prefix: &'static str,
 }
 
 bitflags::bitflags! {
+    /// Flags describing parameter capabilities and behavior.
+    ///
+    /// Used to communicate to the host which automation/modulation modes
+    /// are supported and how to handle the parameter.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct ParamFlags: u32 {
+        /// Parameter value wraps around (e.g., phase, pan).
+        ///
+        /// For periodic parameters, min and max are equivalent (e.g., 0° and 360°).
         const PERIODIC = 1 << 0;
+
+        /// Parameter should not be displayed in the UI.
+        ///
+        /// Used for internal parameters that are not meant for user adjustment.
         const HIDDEN   = 1 << 1;
+
+        /// Parameter is read-only (cannot be changed by the user).
+        ///
+        /// Used for parameters that report state but are not directly editable.
         const READONLY = 1 << 2;
 
+        /// Parameter can be automated by the host (normal automation).
         const AUTOMATABLE             = 1 << 3;
+
+        /// Parameter can be automated per-note (polyphonic automation by note ID).
+        ///
+        /// Used for parameters that can be set per polyphonic voice.
         const AUTOMATABLE_PER_NOTE_ID = 1 << 4;
+
+        /// Parameter can be automated per-key (polyphonic by MIDI key number).
+        ///
+        /// Allows different values for different MIDI keys pressed simultaneously.
         const AUTOMATABLE_PER_KEY     = 1 << 5;
+
+        /// Parameter can be automated per-channel (polyphonic by MIDI channel).
         const AUTOMATABLE_PER_CHANNEL = 1 << 6;
+
+        /// Parameter can be automated per-port (different for each audio port).
         const AUTOMATABLE_PER_PORT    = 1 << 7;
+
+        /// Parameter can be modulated (via MPE, LFO, envelopes, etc.).
         const MODULATABLE             = 1 << 8;
+
+        /// Parameter can be modulated per-note (polyphonic modulation by note ID).
         const MODULATABLE_PER_NOTE_ID = 1 << 9;
+
+        /// Parameter can be modulated per-key (polyphonic by MIDI key).
         const MODULATABLE_PER_KEY     = 1 << 10;
+
+        /// Parameter can be modulated per-channel (polyphonic by MIDI channel).
         const MODULATABLE_PER_CHANNEL = 1 << 11;
+
+        /// Parameter can be modulated per-port (different for each audio port).
         const MODULATABLE_PER_PORT    = 1 << 12;
+
+        /// Parameter changes require the plugin to re-run the process() callback.
+        ///
+        /// Hint that changes to this parameter may affect audio output properties.
         const REQUIRES_PROCESS        = 1 << 13;
 
-        const ENUMERATION      = 1 << 14;
+        /// Changing this parameter may cause audio artifacts (clicks, pops, etc.).
+        ///
+        /// Hint to the host that automation of this parameter should be smoothed.
         const CAUSES_ARTIFACTS = 1 << 15;
+
+        /// Parameter changes affect the plugin's tempo/speed (for tempo-sync effects).
+        ///
+        /// Used for delay time, LFO rate, and other tempo-dependent parameters.
         const CHANGES_TEMPO    = 1 << 16;
     }
 }
 
+/// Parameter range specification.
+///
+/// Defines the type of parameter and its valid range/choices.
+/// Converted to `ParamValue` for runtime use.
+///
+/// # Variants
+/// - `Continuous`: Smooth floating-point range
+/// - `Stepped`: Discrete integer values
+/// - `Bypass`: Boolean on/off switch
+/// - `Enum`: Enumeration with named choices
 pub enum ParamRange {
-    Continuous {
-        min: f64,
-        max: f64,
-        default: f64,
-    },
-    Stepped {
-        min: i32,
-        max: i32,
-        default: i32,
-    },
-    Bypass {
-        default: bool,
-    },
+    /// Continuous floating-point parameter.
+    ///
+    /// Used for smooth parameters like gain, frequency, etc.
+    ///
+    /// # Fields
+    /// - `min`: Minimum value
+    /// - `max`: Maximum value
+    /// - `default`: Default value (must be between min and max)
+    Continuous { min: f64, max: f64, default: f64 },
+
+    /// Discrete integer-valued parameter.
+    ///
+    /// Used for parameters with discrete steps (voices, order, etc.).
+    ///
+    /// # Fields
+    /// - `min`: Minimum value
+    /// - `max`: Maximum value (inclusive)
+    /// - `default`: Default value
+    Stepped { min: i32, max: i32, default: i32 },
+
+    /// Boolean bypass parameter (on/off).
+    ///
+    /// Special parameter for a simple on/off toggle, typically used for
+    /// bypass switches where `true` = enabled/active and `false` = bypassed.
+    ///
+    /// # Fields
+    /// - `default`: Initial state (true = enabled, false = bypassed)
+    Bypass { default: bool },
+
+    /// Enumeration with named choices.
+    ///
+    /// Parameter with a fixed set of named options
+    ///
+    /// # Fields
+    /// - `variants`: List of symbolic names for each choice
+    /// - `default`: Index of the default choice (0..variants.len())
     Enum {
+        /// Named choices for this parameter.
         variants: Vec<StrongIdentifier>,
+        /// Index of the default choice.
         default: usize,
     },
 }
 
+/// Runtime state and current value of a parameter.
+///
+/// Stores the actual parameter value, modulation depth, and range information.
+/// Provides methods to update, query, and format the value.
+///
+/// Created from a `ParamRange` and managed by the plugin during processing.
 pub struct ParamValue {
+    /// Current normalized parameter value (0..1 or special range).
     value: f64,
+
+    /// Current modulation depth applied to the value.
     modulation: f64,
+
+    /// Minimum value for this parameter.
     min: f64,
+
+    /// Maximum value for this parameter.
     max: f64,
+
+    /// Default value for this parameter.
     default: f64,
+
+    /// Interpolation mode for this parameter.
     interpolation: ParamInterpolation,
 }
 
@@ -498,8 +722,6 @@ mod tests {
         assert_eq!(unit.parse(text), expected);
     }
 
-    // ── scale ────────────────────────────────────────────────────────────────
-
     #[test]
     fn scale_hertz_stays_hz() {
         assert_scale(ParamUnit::Hertz, FREQ_HZ, FREQ_HZ, "Hz");
@@ -554,8 +776,6 @@ mod tests {
         assert_scale(ParamUnit::Decibels, DB_VALUE, DB_VALUE, "dB");
     }
 
-    // ── parse ────────────────────────────────────────────────────────────────
-
     #[test]
     fn parse_hz_suffix() {
         assert_parse(ParamUnit::Hertz, "440 Hz", Some(FREQ_HZ));
@@ -608,8 +828,6 @@ mod tests {
     fn parse_empty_returns_none() {
         assert_parse(ParamUnit::Hertz, "", None);
     }
-
-    // ── round-trip ───────────────────────────────────────────────────────────
 
     #[test]
     fn round_trip_hertz() {

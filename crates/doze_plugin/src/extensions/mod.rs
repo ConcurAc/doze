@@ -30,17 +30,6 @@ pub trait RegistrySource: Extension {
     fn identifiers(&self, plugin: &dyn Plugin) -> Vec<StrongIdentifier>;
 }
 
-// pub struct ExtensionBridge<T> {
-//     pub payload: T,
-//     pub extension: Box<dyn Extension>,
-// }
-
-// impl<T: 'static + Send + Sync> Extension for ExtensionBridge<T> {
-//     fn as_registry_source(&self) -> Option<&dyn RegistrySource> {
-//         self.extension.as_registry_source()
-//     }
-// }
-
 pub trait Bridge {
     fn wrap<E: Extension>(extension: E) -> Self;
     fn extension(&self) -> &dyn Extension;
