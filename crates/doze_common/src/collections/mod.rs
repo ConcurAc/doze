@@ -1,9 +1,12 @@
-#[cfg(feature = "alloc")]
-mod hash;
-#[cfg(feature = "alloc")]
-pub use hash::{HashMap, HashMapExt, HashSet, HashSetExt};
+use rapidhash::{RapidHashMap, RapidHashSet};
 
-#[cfg(feature = "alloc")]
+pub type HashMap<K, V> = RapidHashMap<K, V>;
+pub use rapidhash::HashMapExt;
+
+pub type HashSet<K> = RapidHashSet<K>;
+pub use rapidhash::HashSetExt;
+
+pub use indexmap::{IndexMap, IndexSet};
+
 mod type_map;
-#[cfg(feature = "alloc")]
 pub use type_map::{TypeMap, UnsafeTypeMap};
