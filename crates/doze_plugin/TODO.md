@@ -1,0 +1,35 @@
+## To Do
+
+- [x] entry point export
+- [x] plugin descriptor — id, name, vendor, version, features
+- [x] process callback — audio buffers, event handling, status reporting
+- [x] plugin extensions
+  - [x] `audio-ports` — define input and output port layout
+  - [x] `params` — declare parameters, automation, and modulation
+  - [ ] `state` — save and load plugin state
+  - [ ] `state-context` — state with preset/duplicate/project context
+  - [ ] `note-ports` — polyphonic note support and MIDI 2.0 mapping
+  - [ ] `latency` — report processing latency to host
+  - [ ] `tail` — report processing tail length
+  - [ ] `render` — realtime vs offline render mode
+  - [ ] `voice-info` — voice count for polyphonic modulation
+  - [ ] `gui` — generic GUI window lifecycle
+  - [ ] `audio-ports-config` — pre-defined port configurations
+  - [ ] `audio-ports-activation` — activate and deactivate individual audio ports
+  - [ ] `configurable-audio-ports` — request plugin apply a given port configuration
+  - [ ] `surround` — surround channel mapping inspection
+  - [ ] `ambisonic` — ambisonic channel mapping inspection
+  - [ ] `remote-controls` — bank of 8-knob controller mappings
+  - [ ] `note-name` — named notes, useful for drum machines
+  - [ ] `preset-load` — host-initiated preset loading
+  - [ ] `param-indication` — physical controller and automation mapping info
+  - [ ] `track-info` — track context provided by host
+  - [ ] `context-menu` — exchange context menu entries with host
+- [ ] host extensions
+  - [ ] `log` — aggregate plugin logs via host
+  - [ ] `thread-check` — validate current thread context
+  - [ ] `thread-pool` — submit work to the host thread pool
+  - [ ] `timer-support` — register periodic timer callbacks
+  - [ ] `posix-fd-support` — register I/O handlers
+  - [ ] `event-registry` — query supported event types from host
+  - [ ] `transport-control` — plugin control of host transport (draft)

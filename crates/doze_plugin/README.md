@@ -92,3 +92,7 @@ Pass your `Entry` implementor to the format-specific export macro.
 ```rust
 doze_clap::export!(MyEntry);
 ```
+
+## Status
+
+See [TODO.md](TODO.md) for what is implemented and what is planned.

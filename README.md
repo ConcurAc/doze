@@ -33,11 +33,10 @@ Tested with REAPER on linux.
 
 See `examples/gain` for the minimal plugin implementation.
 
-A Nix flake is provided for reproducible environments.
-
 ## Status
 
-Doze is in active early development. The API will change before 1.0.0. See [TODO.md](TODO.md) for what is implemented and what is planned.
+Doze is in active early development. The API will change before 1.0.0. 
+See [TODO.md](TODO.md) for what is implemented and what is planned.
 
 ## License
 
