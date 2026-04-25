@@ -17,59 +17,43 @@
       rust-overlay,
       ...
     }:
-    flake-utils.lib.eachSystem
-      [
-        "x86_64-linux"
-      ]
-      (
-        system:
-        let
-          inherit (nixpkgs) lib;
-          pkgs = import nixpkgs {
-            inherit system;
-            overlays = [ rust-overlay.overlays.default ];
-          };
-          rust = pkgs.rust-bin.selectLatestNightlyWith (
-            toolchain:
-            toolchain.minimal.override {
-              extensions = [
-                "cargo"
-                "rust-src"
-                "rustc-dev"
-                "rustfmt"
-                "clippy"
-                "rustc-codegen-cranelift-preview"
-              ];
-            }
-          );
-
-          nativeBuildInputs = with pkgs; [
-            pkg-config
-            clang
-            mold
-            llvm
-            rust
-          ];
-
-          buildInputs = with pkgs; [
-            pipewire
-            alsa-lib
-            zlib
-          ];
-        in
-        {
-          devShells.default = pkgs.mkShell {
-            inherit nativeBuildInputs buildInputs;
-
-            packages = with pkgs; [
-              rust-analyzer
+    flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ rust-overlay.overlays.default ];
+        };
+        rust = pkgs.rust-bin.selectLatestNightlyWith (
+          toolchain:
+          toolchain.minimal.override {
+            extensions = [
+              "cargo"
+              "rust-src"
+              "rustfmt"
+              "clippy"
             ];
+          }
+        );
 
-            LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
+        nativeBuildInputs = with pkgs; [
+          pkg-config
+          clang
+          llvm
+          rust
+        ];
+      in
+      {
+        devShells.default = pkgs.mkShell {
+          inherit nativeBuildInputs;
 
-            RUST_LOG = "debug";
-            RUST_BACKTRACE = "1";
-          };
-        }
-      );
+          packages = with pkgs; [
+            rust-analyzer
+          ];
+
+          RUST_LOG = "debug";
+          RUST_BACKTRACE = "1";
+        };
+      }
+    );
 }
