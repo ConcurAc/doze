@@ -15,9 +15,9 @@ Currently supports **CLAP** to a minimal working standard. VST3 and a first-part
 
 | Crate | Description |
 |---|---|
-| `doze_common` | Shared types and utilities |
-| `doze_plugin` | Middleware plugin API |
-| `doze_clap` | CLAP implementation |
+| [`doze_plugin`](crates/doze_plugin) | Middleware plugin API |
+| [`doze_clap`](crates/doze_clap) | CLAP implementation |
+| [`doze_common`](crates/doze_common) | Shared types and utilities |
 
 ## Getting Started
 
