@@ -50,7 +50,7 @@ Extensions are host-plugin interfaces declared at factory time and queried by th
 Describes the plugin's audio port layout.
 
 ```rust
-AudioPorts::<MyPlugin> {
+let audio_ports = AudioPorts::<MyPlugin> {
     count: |plugin, direction| { .. },
     get: |plugin, direction, index| { .. },
     in_place_pairs: None,
@@ -66,7 +66,7 @@ identifies parameters by their `symbol`, not their index. `IndexMap` is recommen
 storage as it provides both stable ordering and symbol-based lookup.
 
 ```rust
-Params::<MyPlugin> {
+let params = Params::<MyPlugin> {
     count: |plugin| { .. },
     get: |plugin, index| { .. },
     flush: |plugin, events, _output| { .. },
@@ -78,11 +78,13 @@ Params::<MyPlugin> {
 Assemble your plugin with `PluginBuilder`, then register it with the factory.
 
 ```rust
-PluginBuilder::<A, MyPlugin>::default()
+let plugin = PluginBuilder::<A, MyPlugin>::default()
     .set_creator(|| Box::new(MyPlugin::new()))
     .set_descriptor(descriptor)
     .add_extension(audio_ports)
     .add_extension(params);
+
+PluginFactoryBuilder::new().add_plugin(plugin.into())
 ```
 
 ## Exporting

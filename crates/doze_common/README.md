@@ -7,7 +7,7 @@ Intermediary crate implementing common types and utilities.
 ### `doze_common::midi`
 | Re-exported from | Available as |
 |---|---|
-| `midi_consts` | `doze_common::midi` |
+| `midi_consts` | `midi` |
 
 ### `doze_common::collections`
 | Re-exported from | Available as |
