@@ -1,13 +1,13 @@
 [package]
 name = "doze_plugin"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 description = "Audio plugin abstraction API for doze"
 keywords = [ "doze", "audio", "plugin" ]
 authors.workspace = true
 repository.workspace = true
-readme.workspace = true
 license.workspace = true
+readme = "README.md"
 
 [dependencies]
 doze_common.workspace = true

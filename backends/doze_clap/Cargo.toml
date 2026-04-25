@@ -6,8 +6,8 @@ description = "CLAP audio plugin format support for doze"
 keywords = [ "doze", "audio", "plugin", "clap" ]
 authors.workspace = true
 repository.workspace = true
-readme.workspace = true
 license.workspace = true
+readme = "README.md"
 
 [dependencies]
 doze_common = { workspace = true, features = [ "std" ] }

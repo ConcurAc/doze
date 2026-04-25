@@ -1,13 +1,13 @@
 [package]
 name = "doze_common"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 description = "Common types and utilities for doze"
 keywords = [ "doze", "audio" ]
 authors.workspace = true
 repository.workspace = true
-readme.workspace = true
 license.workspace = true
+readme = "README.md"
 
 [features]
 default = [ "std" ]
