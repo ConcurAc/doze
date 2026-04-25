@@ -2,6 +2,8 @@
 name = "doze_common"
 version = "0.1.0"
 edition = "2024"
+description = "Common types and utilities for doze"
+keywords = [ "doze", "audio" ]
 authors.workspace = true
 repository.workspace = true
 readme.workspace = true
@@ -16,6 +18,7 @@ collections = ["dep:rapidhash", "dep:indexmap", "rapidhash/std", "indexmap/std"]
 [dependencies]
 
 derive_more = { version = "2.0.1", features = [ "deref", "deref_mut"] }
+
 bytemuck = "1.23.2"
 heapless = "0.9.2"
 

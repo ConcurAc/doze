@@ -2,6 +2,8 @@
 name = "doze_clap"
 version = "0.1.0"
 edition = "2024"
+description = "CLAP audio plugin format support for doze"
+keywords = [ "doze", "audio", "plugin", "clap" ]
 authors.workspace = true
 repository.workspace = true
 readme.workspace = true

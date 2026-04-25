@@ -2,18 +2,15 @@
 name = "doze_plugin"
 version = "0.1.0"
 edition = "2024"
+description = "Audio plugin abstraction API for doze"
+keywords = [ "doze", "audio", "plugin" ]
 authors.workspace = true
 repository.workspace = true
 readme.workspace = true
 license.workspace = true
 
-[features]
-default = []
-
 [dependencies]
-doze_common = { workspace = true, features = [ "std" ] }
-
-derive_more = { version = "2.1", features = [ "deref", "deref_mut" ] }
+doze_common.workspace = true
 
 bitflags = "2.11"
 parking_lot = "0.12"

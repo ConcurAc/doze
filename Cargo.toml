@@ -2,6 +2,8 @@
 name = "doze"
 version = "0.1.0"
 edition = "2024"
+description = "Modular and composable audio plugin abstraction layer for Rust"
+keywords = [ "doze", "audio", "plugin" ]
 authors.workspace = true
 repository.workspace = true
 readme.workspace = true
