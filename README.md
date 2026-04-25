@@ -40,4 +40,4 @@ See [TODO.md](TODO.md) for what is implemented and what is planned.
 
 ## License
 
-Apache License 2.0. See `LICENSE`.
+Apache License 2.0. See [`LICENSE`](LICENSE).
