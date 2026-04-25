@@ -1,6 +1,9 @@
 # To Do
 
-## doze_dsp
+## Crates
+- [`doze_plugin`](crates/doze_plugin/TODO.md)
+
+### doze_dsp
 
 - [ ] processing graph base
 - [ ] compile time static pipelines
@@ -9,6 +12,9 @@
 - [ ] frequency domain processing
 - [ ] sample accurate processing
 - [ ] sample accurate event updating
+
+## Backends
+- [`doze_clap`](backends/doze_clap/TODO.md)
 
 ---
 
