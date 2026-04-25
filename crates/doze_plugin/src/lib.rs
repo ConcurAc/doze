@@ -51,5 +51,5 @@ pub trait Entry<A: PluginApi> {
     fn init(path: Option<&Path>) -> Option<PluginFactoryBuilder<A>>;
 
     /// Deinitialize the plugin factory (called on library unload).
-    fn deinit();
+    fn deinit() {}
 }

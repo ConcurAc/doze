@@ -150,7 +150,7 @@ fn apply_gain<'p, T: Sample>(
 /// Entry point for plugin factory system.
 ///
 /// This builds the plugin instance and registers it with the host.
-pub struct GainEntry;
+struct GainEntry;
 
 impl<A: PluginApi> Entry<A> for GainEntry {
     fn init(_path: Option<&Path>) -> Option<PluginFactoryBuilder<A>> {
@@ -196,9 +196,6 @@ impl<A: PluginApi> Entry<A> for GainEntry {
 
         Some(PluginFactoryBuilder::new().add_plugin(gain_builder.into()))
     }
-
-    /// Called when plugin library is unloaded.
-    fn deinit() {}
 }
 
 doze_clap::export!(GainEntry);
