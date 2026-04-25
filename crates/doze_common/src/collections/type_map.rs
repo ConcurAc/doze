@@ -11,14 +11,12 @@ impl<A: Any> TypeMap<A> {
     pub fn get<T: 'static>(&self) -> Option<&T> {
         self.0
             .get(&TypeId::of::<T>())
-            .map(|a| (a as &dyn Any).downcast_ref())
-            .flatten()
+            .and_then(|a| (a as &dyn Any).downcast_ref())
     }
     pub fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.0
             .get_mut(&TypeId::of::<T>())
-            .map(|a| (a as &mut dyn Any).downcast_mut())
-            .flatten()
+            .and_then(|a| (a as &mut dyn Any).downcast_mut())
     }
 }
 
@@ -41,14 +39,12 @@ impl UnsafeTypeMap {
     pub unsafe fn get<T: 'static>(&self) -> Option<&T> {
         self.0
             .get::<*mut ()>()
-            .map(|&p| unsafe { (p as *const T).as_ref() })
-            .flatten()
+            .and_then(|&p| unsafe { (p as *const T).as_ref() })
     }
     pub unsafe fn get_mut<T: 'static>(&self) -> Option<&mut T> {
         self.0
             .get::<*mut ()>()
-            .map(|&p| unsafe { (p as *mut T).as_mut() })
-            .flatten()
+            .and_then(|&p| unsafe { (p as *mut T).as_mut() })
     }
 }
 
