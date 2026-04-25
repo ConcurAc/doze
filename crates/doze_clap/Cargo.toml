@@ -2,6 +2,10 @@
 name = "doze_clap"
 version = "0.1.0"
 edition = "2024"
+authors.workspace = true
+repository.workspace = true
+readme.workspace = true
+license.workspace = true
 
 [dependencies]
 doze_common = { workspace = true, features = [ "std" ] }

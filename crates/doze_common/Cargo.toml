@@ -2,9 +2,13 @@
 name = "doze_common"
 version = "0.1.0"
 edition = "2024"
+authors.workspace = true
+repository.workspace = true
+readme.workspace = true
+license.workspace = true
 
 [features]
-default = [  ]
+default = [ "std" ]
 alloc = [ ]
 std = [ "alloc", "collections" ]
 collections = ["dep:rapidhash", "dep:indexmap", "rapidhash/std", "indexmap/std"]
