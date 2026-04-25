@@ -1,3 +1,5 @@
+[![Crates.io](https://img.shields.io/crates/v/doze)](https://crates.io/crates/doze_plugin)
+
 # doze_plugin
 
 Middleware abstraction layer for building audio plugins, independent of any specific plugin format.

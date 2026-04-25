@@ -1,3 +1,5 @@
+[![Crates.io](https://img.shields.io/crates/v/doze)](https://crates.io/crates/doze)
+
 # Doze
 
 A lightweight Rust framework for building audio plugins. Write plugin logic once and export to any supported format.

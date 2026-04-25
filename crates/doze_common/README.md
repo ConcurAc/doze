@@ -1,3 +1,5 @@
+[![Crates.io](https://img.shields.io/crates/v/doze)](https://crates.io/crates/doze_common)
+
 # doze_common
 
 Intermediary crate implementing common types and utilities.
